@@ -125,7 +125,7 @@ export async function handleAuthRedirect({ clientId, redirectUri }) {
 
   sessionStorage.removeItem(STATE_KEY);
   sessionStorage.removeItem(VERIFIER_KEY);
-  const cleanUrl = window.location.origin + window.location.pathname;
+  const cleanUrl = window.location.origin + import.meta.env.BASE_URL;
   window.history.replaceState({}, document.title, cleanUrl);
 
   return {
