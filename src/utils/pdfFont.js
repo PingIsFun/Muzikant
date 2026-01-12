@@ -1,6 +1,7 @@
 const FONT_NAME = "NotoSans";
-const REGULAR_PATH = "/fonts/NotoSans-Regular.ttf";
-const BOLD_PATH = "/fonts/NotoSans-Bold.ttf";
+const BASE_URL = import.meta.env.BASE_URL;
+const REGULAR_PATH = `${BASE_URL}fonts/NotoSans-Regular.ttf`;
+const BOLD_PATH = `${BASE_URL}fonts/NotoSans-Bold.ttf`;
 const REGULAR_FILE = "NotoSans-Regular.ttf";
 const BOLD_FILE = "NotoSans-Bold.ttf";
 
