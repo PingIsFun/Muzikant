@@ -5,6 +5,6 @@ export async function generateQrDataUrl(trackId) {
   return QRCode.toDataURL(payload, {
     errorCorrectionLevel: "M",
     margin: 1,
-    width: 512,
+    width: 256,
   });
 }

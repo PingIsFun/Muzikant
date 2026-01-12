@@ -61,7 +61,7 @@ export default function App() {
       }
 
       setProgress("Building PDF");
-      const pdf = new jsPDF({ unit: "mm", format: "a4" });
+      const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
       setProgress("Loading PDF font");
       await registerPdfFonts(pdf);
       setProgress("Building PDF");
@@ -80,7 +80,6 @@ export default function App() {
           addFrontCardToPdf(pdf, {
             indexOnPage,
             qrDataUrl: qrDataUrls[startIndex + indexOnPage],
-            footerText: "Scan to play",
           });
         });
 
