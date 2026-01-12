@@ -1,47 +1,76 @@
 export const PAGE = {
   width: 210,
   height: 297,
-  margin: 10,
-  cardWidth: 47.5,
-  cardHeight: 92.33333333333333,
-  cols: 4,
-  rows: 3,
-  qrSize: 38,
+  margin: 8,
 };
 
-export const CARDS_PER_PAGE = PAGE.cols * PAGE.rows;
+const MIN_CARD_SIZE = 32;
+const QR_SCALE = 0.78;
 
-function getGaps() {
-  const contentWidth = PAGE.width - PAGE.margin * 2;
-  const contentHeight = PAGE.height - PAGE.margin * 2;
-  const gapX = (contentWidth - PAGE.cardWidth * PAGE.cols) / (PAGE.cols - 1);
-  const gapY = (contentHeight - PAGE.cardHeight * PAGE.rows) / (PAGE.rows - 1);
-  return { gapX, gapY };
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
+function computeLayout() {
+  const contentWidth = PAGE.width - PAGE.margin * 2;
+  const contentHeight = PAGE.height - PAGE.margin * 2;
+  const maxCols = Math.floor(contentWidth / MIN_CARD_SIZE);
+  const maxRows = Math.floor(contentHeight / MIN_CARD_SIZE);
+
+  let best = null;
+
+  for (let cols = 1; cols <= maxCols; cols += 1) {
+    for (let rows = 1; rows <= maxRows; rows += 1) {
+      const cardSize = Math.min(contentWidth / cols, contentHeight / rows);
+      if (cardSize < MIN_CARD_SIZE) continue;
+      const cards = cols * rows;
+      if (!best || cards > best.cards || (cards === best.cards && cardSize > best.cardSize)) {
+        best = { cols, rows, cardSize, cards };
+      }
+    }
+  }
+
+  const cardSize = best ? best.cardSize : MIN_CARD_SIZE;
+  const cols = best ? best.cols : 1;
+  const rows = best ? best.rows : 1;
+  const gapX = cols > 1 ? (contentWidth - cardSize * cols) / (cols - 1) : 0;
+  const gapY = rows > 1 ? (contentHeight - cardSize * rows) / (rows - 1) : 0;
+
+  return {
+    cols,
+    rows,
+    cardSize,
+    gapX,
+    gapY,
+    qrSize: cardSize * QR_SCALE,
+  };
+}
+
+const LAYOUT = computeLayout();
+
+export const CARDS_PER_PAGE = LAYOUT.cols * LAYOUT.rows;
+
 function getCardPosition(indexOnPage, mirrored = false) {
-  const col = indexOnPage % PAGE.cols;
-  const row = Math.floor(indexOnPage / PAGE.cols);
-  const effectiveCol = mirrored ? PAGE.cols - 1 - col : col;
-  const { gapX, gapY } = getGaps();
-  const x = PAGE.margin + effectiveCol * (PAGE.cardWidth + gapX);
-  const y = PAGE.margin + row * (PAGE.cardHeight + gapY);
+  const col = indexOnPage % LAYOUT.cols;
+  const row = Math.floor(indexOnPage / LAYOUT.cols);
+  const effectiveCol = mirrored ? LAYOUT.cols - 1 - col : col;
+  const x = PAGE.margin + effectiveCol * (LAYOUT.cardSize + LAYOUT.gapX);
+  const y = PAGE.margin + row * (LAYOUT.cardSize + LAYOUT.gapY);
   return { x, y };
 }
 
 export function drawCuttingGrid(pdf) {
-  const { gapX, gapY } = getGaps();
   const gridColor = 204;
   pdf.setDrawColor(gridColor);
   pdf.setLineWidth(0.2);
 
-  for (let col = 1; col < PAGE.cols; col += 1) {
-    const x = PAGE.margin + col * PAGE.cardWidth + (col - 1) * gapX + gapX / 2;
+  for (let col = 1; col < LAYOUT.cols; col += 1) {
+    const x = PAGE.margin + col * LAYOUT.cardSize + (col - 1) * LAYOUT.gapX + LAYOUT.gapX / 2;
     pdf.line(x, PAGE.margin, x, PAGE.height - PAGE.margin);
   }
 
-  for (let row = 1; row < PAGE.rows; row += 1) {
-    const y = PAGE.margin + row * PAGE.cardHeight + (row - 1) * gapY + gapY / 2;
+  for (let row = 1; row < LAYOUT.rows; row += 1) {
+    const y = PAGE.margin + row * LAYOUT.cardSize + (row - 1) * LAYOUT.gapY + LAYOUT.gapY / 2;
     pdf.line(PAGE.margin, y, PAGE.width - PAGE.margin, y);
   }
 
@@ -67,38 +96,44 @@ export function drawPageAlignmentMark(doc, mirrored = false) {
   }
 }
 
-export function addFrontCardToPdf(pdf, { indexOnPage, qrDataUrl, footerText }) {
+export function addFrontCardToPdf(pdf, { indexOnPage, qrDataUrl }) {
   const { x, y } = getCardPosition(indexOnPage, false);
-  const qrX = x + (PAGE.cardWidth - PAGE.qrSize) / 2;
-  const qrY = y + (PAGE.cardHeight - PAGE.qrSize) / 2 - 6;
+  const padding = Math.max(2, LAYOUT.cardSize * 0.06);
+  const qrX = x + (LAYOUT.cardSize - LAYOUT.qrSize) / 2;
+  const qrY = y + padding;
 
-  pdf.addImage(qrDataUrl, "PNG", qrX, qrY, PAGE.qrSize, PAGE.qrSize);
-
-  if (footerText) {
-    pdf.setFont("NotoSans", "normal");
-    pdf.setFontSize(8);
-    pdf.text(footerText, x + PAGE.cardWidth / 2, y + PAGE.cardHeight - 6, { align: "center" });
-  }
+  pdf.addImage(qrDataUrl, "PNG", qrX, qrY, LAYOUT.qrSize, LAYOUT.qrSize);
 }
 
 export function addBackCardToPdf(pdf, { indexOnPage, year, artist, title }) {
   const { x, y } = getCardPosition(indexOnPage, true);
-  const centerX = x + PAGE.cardWidth / 2;
-  const padding = 6;
-  const textWidth = PAGE.cardWidth - padding * 2;
-  const topY = y + padding + 2;
+  const centerX = x + LAYOUT.cardSize / 2;
+  const paddingX = Math.max(1.5);
+  const textWidth = LAYOUT.cardSize - paddingX * 2;
+  const yearSize = clamp(LAYOUT.cardSize * 0.38, 10, 18);
+  const artistSize = clamp(LAYOUT.cardSize * 0.18, 8, 12);
+  const titleSize = clamp(LAYOUT.cardSize * 0.16, 8, 11);
+  const lineGap = 0.5;
+  const lineHeightFactor = 0.5;
+
+  let cursorY = y + yearSize * lineHeightFactor;
 
   pdf.setFont("NotoSans", "bold");
-  pdf.setFontSize(16);
-  pdf.text(String(year), centerX, topY + 6, { align: "center" });
+  pdf.setFontSize(yearSize);
+  const yearLines = pdf.splitTextToSize(String(year), textWidth);
+  pdf.text(yearLines, centerX, cursorY, { align: "center" });
 
-  pdf.setFont("NotoSans", "normal");
-  pdf.setFontSize(10);
+  cursorY += yearLines.length * yearSize * lineHeightFactor + lineGap;
+  
+  pdf.setFont("NotoSans", "italic");
+  pdf.setFontSize(artistSize);
   const artistLines = pdf.splitTextToSize(artist, textWidth);
-  pdf.text(artistLines, centerX, topY + 18, { align: "center" });
+  pdf.text(artistLines, centerX, cursorY, { align: "center" });
+
+  cursorY += artistLines.length * artistSize * lineHeightFactor + lineGap;
 
   pdf.setFont("NotoSans", "normal");
-  pdf.setFontSize(9);
+  pdf.setFontSize(titleSize);
   const titleLines = pdf.splitTextToSize(title, textWidth);
-  pdf.text(titleLines, centerX, topY + 32, { align: "center" });
+  pdf.text(titleLines, centerX, cursorY, { align: "center" });
 }
