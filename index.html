@@ -3,12 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
+    <style>
+      @font-face {
+        font-family: "Noto Sans";
+        src: url("fonts/NotoSans-Regular.ttf") format("truetype");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Noto Sans";
+        src: url("fonts/NotoSans-Bold.ttf") format("truetype");
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
+      body {
+        font-family: "Noto Sans", system-ui, sans-serif;
+      }
+    </style>
     <title>Music Timeline Cards</title>
   </head>
   <body>
