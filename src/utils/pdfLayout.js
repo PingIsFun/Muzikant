@@ -1,7 +1,10 @@
 export const PAGE = {
   width: 210,
   height: 297,
-  margin: 8,
+  marginLeft: 15,
+  marginTop: 15,
+  marginRight: 10,
+  marginBottom: 10,
 };
 
 const MIN_CARD_SIZE = 32;
@@ -12,8 +15,8 @@ function clamp(value, min, max) {
 }
 
 function computeLayout() {
-  const contentWidth = PAGE.width - PAGE.margin * 2;
-  const contentHeight = PAGE.height - PAGE.margin * 2;
+  const contentWidth = PAGE.width - PAGE.marginLeft - PAGE.marginRight;
+  const contentHeight = PAGE.height - PAGE.marginTop - PAGE.marginBottom;
   const maxCols = Math.floor(contentWidth / MIN_CARD_SIZE);
   const maxRows = Math.floor(contentHeight / MIN_CARD_SIZE);
 
@@ -54,8 +57,8 @@ function getCardPosition(indexOnPage, mirrored = false) {
   const col = indexOnPage % LAYOUT.cols;
   const row = Math.floor(indexOnPage / LAYOUT.cols);
   const effectiveCol = mirrored ? LAYOUT.cols - 1 - col : col;
-  const x = PAGE.margin + effectiveCol * (LAYOUT.cardSize + LAYOUT.gapX);
-  const y = PAGE.margin + row * (LAYOUT.cardSize + LAYOUT.gapY);
+  const x = PAGE.marginLeft + effectiveCol * (LAYOUT.cardSize + LAYOUT.gapX);
+  const y = PAGE.marginTop + row * (LAYOUT.cardSize + LAYOUT.gapY);
   return { x, y };
 }
 
@@ -65,35 +68,36 @@ export function drawCuttingGrid(pdf) {
   pdf.setLineWidth(0.2);
 
   for (let col = 1; col < LAYOUT.cols; col += 1) {
-    const x = PAGE.margin + col * LAYOUT.cardSize + (col - 1) * LAYOUT.gapX + LAYOUT.gapX / 2;
-    pdf.line(x, PAGE.margin, x, PAGE.height - PAGE.margin);
+    const x =
+      PAGE.marginLeft + col * LAYOUT.cardSize + (col - 1) * LAYOUT.gapX + LAYOUT.gapX / 2;
+    pdf.line(x, PAGE.marginTop, x, PAGE.height - PAGE.marginBottom);
   }
 
   for (let row = 1; row < LAYOUT.rows; row += 1) {
-    const y = PAGE.margin + row * LAYOUT.cardSize + (row - 1) * LAYOUT.gapY + LAYOUT.gapY / 2;
-    pdf.line(PAGE.margin, y, PAGE.width - PAGE.margin, y);
+    const y = PAGE.marginTop + row * LAYOUT.cardSize + (row - 1) * LAYOUT.gapY + LAYOUT.gapY / 2;
+    pdf.line(PAGE.marginLeft, y, PAGE.width - PAGE.marginRight, y);
   }
 
-  pdf.rect(PAGE.margin, PAGE.margin, PAGE.width - PAGE.margin * 2, PAGE.height - PAGE.margin * 2);
+  pdf.rect(
+    PAGE.marginLeft,
+    PAGE.marginTop,
+    PAGE.width - PAGE.marginLeft - PAGE.marginRight,
+    PAGE.height - PAGE.marginTop - PAGE.marginBottom
+  );
 }
 
 export function drawPageAlignmentMark(doc, mirrored = false) {
-  const size = 8;
-  const offset = 5;
-  doc.setLineWidth(0.5);
+  const xStart = mirrored
+    ? PAGE.marginLeft + (LAYOUT.cols - 1) * (LAYOUT.cardSize + LAYOUT.gapX)
+    : PAGE.marginLeft;
+  const yStart = PAGE.marginTop + (LAYOUT.rows - 1) * (LAYOUT.cardSize + LAYOUT.gapY);
+  const xEnd = xStart + LAYOUT.cardSize;
+  const yEnd = yStart + LAYOUT.cardSize;
   doc.setDrawColor(0);
-
-  if (!mirrored) {
-    const x = offset;
-    const y = PAGE.height - offset;
-    doc.line(x, y, x, y - size);
-    doc.line(x, y, x + size, y);
-  } else {
-    const x = PAGE.width - offset;
-    const y = PAGE.height - offset;
-    doc.line(x, y, x, y - size);
-    doc.line(x, y, x - size, y);
-  }
+  doc.setLineWidth(0.8);
+  const verticalX = mirrored ? xEnd : xStart;
+  doc.line(verticalX, yStart, verticalX, yEnd);
+  doc.line(xStart, yEnd, xEnd, yEnd);
 }
 
 export function addFrontCardToPdf(pdf, { indexOnPage, qrDataUrl }) {
