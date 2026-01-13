@@ -221,7 +221,7 @@ export default function App() {
 
         <div style={{ display: "grid", gap: "6px" }}>
           <div style={{ fontSize: "12px", color: "#475569" }}>
-            Print with no margins at 100% scale for best alignment.
+            Print with no margins at 100% scale and make sure the bold alignment edges overlap front and back.
           </div>
           {progress && (
             <div style={{ display: "grid", gap: "6px" }}>
