@@ -34,6 +34,7 @@ export default function App() {
     album: false,
     title: true,
   });
+  const [flipBackSide, setFlipBackSide] = useState(true);
 
   const isValidPlaylist = useMemo(() => Boolean(playlistId), [playlistId]);
 
@@ -102,7 +103,7 @@ export default function App() {
 
         pdf.addPage();
         drawCuttingGrid(pdf);
-        drawPageAlignmentMark(pdf, true);
+        drawPageAlignmentMark(pdf, flipBackSide);
         slice.forEach((track, indexOnPage) => {
           addBackCardToPdf(pdf, {
             indexOnPage,
@@ -111,6 +112,7 @@ export default function App() {
             album: track.album,
             title: track.title,
             fields: backFields,
+            mirrored: flipBackSide,
           });
         });
       }
@@ -197,13 +199,29 @@ export default function App() {
           )}
         </div>
 
+        <div style={{ display: "grid", gap: "6px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>
+            PDF settings
+          </div>
+          <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <input
+              type="checkbox"
+              checked={flipBackSide}
+              onChange={() => setFlipBackSide((prev) => !prev)}
+            />
+            <span style={{ fontSize: "14px", color: "#0f172a" }}>
+              Flip back side
+            </span>
+          </label>
+        </div>
+
         <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
           <PdfGenerator disabled={!canGenerate} onClick={handleGeneratePdf} />
         </div>
 
         <div style={{ display: "grid", gap: "6px" }}>
           <div style={{ fontSize: "12px", color: "#475569" }}>
-            Print duplex (long edge), scale 100%. The L-shaped marks should overlap when aligned correctly.
+            Print with no margins at 100% scale for best alignment.
           </div>
           {progress && (
             <div style={{ display: "grid", gap: "6px" }}>

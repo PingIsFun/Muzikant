@@ -109,8 +109,11 @@ export function addFrontCardToPdf(pdf, { indexOnPage, qrDataUrl }) {
   pdf.addImage(qrDataUrl, "PNG", qrX, qrY, LAYOUT.qrSize, LAYOUT.qrSize);
 }
 
-export function addBackCardToPdf(pdf, { indexOnPage, year, artist, album, title, fields }) {
-  const { x, y } = getCardPosition(indexOnPage, true);
+export function addBackCardToPdf(
+  pdf,
+  { indexOnPage, year, artist, album, title, fields, mirrored = true }
+) {
+  const { x, y } = getCardPosition(indexOnPage, mirrored);
   const centerX = x + LAYOUT.cardSize / 2;
   const padding = Math.max(2, LAYOUT.cardSize * 0.06);
   const textWidth = LAYOUT.cardSize - padding * 2;
