@@ -27,6 +27,12 @@ export default function App() {
   const [playlistId, setPlaylistId] = useState(null);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
+  const [backFields, setBackFields] = useState({
+    year: true,
+    artist: true,
+    album: false,
+    title: true,
+  });
 
   const isValidPlaylist = useMemo(() => Boolean(playlistId), [playlistId]);
 
@@ -93,7 +99,9 @@ export default function App() {
             indexOnPage,
             year: track.year,
             artist: track.artist,
+            album: track.album,
             title: track.title,
+            fields: backFields,
           });
         });
       }
@@ -107,7 +115,8 @@ export default function App() {
     }
   };
 
-  const canGenerate = isValidPlaylist && !progress;
+  const hasBackFields = Object.values(backFields).some(Boolean);
+  const canGenerate = isValidPlaylist && hasBackFields && !progress;
 
   return (
     <div
@@ -134,12 +143,6 @@ export default function App() {
       >
         <header style={{ display: "grid", gap: "8px" }}>
           <h1 style={{ margin: 0, fontSize: "28px" }}>Muzikant</h1>
-          <p style={{ margin: 0, color: "#475569" }}>
-            Paste a Spotify playlist link and generate printable QR cards for a music timeline party.
-          </p>
-          <p style={{ margin: 0, color: "#64748b", fontSize: "14px" }}>
-            Only the host connects to Spotify on the server. Players do not need accounts.
-          </p>
         </header>
 
         <PlaylistInput
@@ -148,6 +151,40 @@ export default function App() {
           isValid={isValidPlaylist}
           playlistId={playlistId}
         />
+
+        <div style={{ display: "grid", gap: "8px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a" }}>
+            Back of card shows
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+            {[
+              { key: "year", label: "Year" },
+              { key: "artist", label: "Artist" },
+              { key: "album", label: "Album" },
+              { key: "title", label: "Title" },
+            ].map((field) => {
+              return (
+                <label key={field.key} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <input
+                    type="checkbox"
+                    checked={backFields[field.key]}
+                    onChange={() =>
+                      setBackFields((prev) => ({ ...prev, [field.key]: !prev[field.key] }))
+                    }
+                  />
+                  <span style={{ fontSize: "14px", color: "#0f172a" }}>
+                    {field.label}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {!hasBackFields && (
+            <div style={{ fontSize: "12px", color: "#b91c1c" }}>
+              Select at least one field to generate cards.
+            </div>
+          )}
+        </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
           <PdfGenerator disabled={!canGenerate} onClick={handleGeneratePdf} />

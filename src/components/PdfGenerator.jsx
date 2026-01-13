@@ -11,7 +11,7 @@ export default function PdfGenerator({ disabled, onClick }) {
         fontSize: "16px",
         borderRadius: "6px",
         border: "none",
-        background: disabled ? "#9ca3af" : "#111827",
+        background: disabled ? "#9ca3af" : "#16a34a",
         color: "white",
         cursor: disabled ? "not-allowed" : "pointer",
       }}

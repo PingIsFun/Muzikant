@@ -105,35 +105,52 @@ export function addFrontCardToPdf(pdf, { indexOnPage, qrDataUrl }) {
   pdf.addImage(qrDataUrl, "PNG", qrX, qrY, LAYOUT.qrSize, LAYOUT.qrSize);
 }
 
-export function addBackCardToPdf(pdf, { indexOnPage, year, artist, title }) {
+export function addBackCardToPdf(pdf, { indexOnPage, year, artist, album, title, fields }) {
   const { x, y } = getCardPosition(indexOnPage, true);
   const centerX = x + LAYOUT.cardSize / 2;
-  const paddingX = Math.max(1.5);
-  const textWidth = LAYOUT.cardSize - paddingX * 2;
+  const padding = Math.max(2, LAYOUT.cardSize * 0.06);
+  const textWidth = LAYOUT.cardSize - padding * 2;
   const yearSize = clamp(LAYOUT.cardSize * 0.38, 10, 18);
   const artistSize = clamp(LAYOUT.cardSize * 0.18, 8, 12);
   const titleSize = clamp(LAYOUT.cardSize * 0.16, 8, 11);
   const lineGap = 0.5;
   const lineHeightFactor = 0.5;
 
-  let cursorY = y + yearSize * lineHeightFactor;
+  const showYear = fields?.year ?? true;
+  const showArtist = fields?.artist ?? true;
+  const showAlbum = fields?.album ?? true;
+  const showTitle = fields?.title ?? true;
 
-  pdf.setFont("NotoSans", "bold");
-  pdf.setFontSize(yearSize);
-  const yearLines = pdf.splitTextToSize(String(year), textWidth);
-  pdf.text(yearLines, centerX, cursorY, { align: "center" });
+  let artistLabel = "";
+  if (showArtist && showAlbum && artist && album) {
+    artistLabel = `${artist}: ${album}`;
+  } else if (showArtist && artist) {
+    artistLabel = artist;
+  } else if (showAlbum && album) {
+    artistLabel = album;
+  }
 
-  cursorY += yearLines.length * yearSize * lineHeightFactor + lineGap;
-  
-  pdf.setFont("NotoSans", "italic");
-  pdf.setFontSize(artistSize);
-  const artistLines = pdf.splitTextToSize(artist, textWidth);
-  pdf.text(artistLines, centerX, cursorY, { align: "center" });
+  const blocks = [];
+  if (showYear && year) {
+    blocks.push({ style: "bold", size: yearSize, text: String(year) });
+  }
+  if (artistLabel) {
+    blocks.push({ style: "italic", size: artistSize, text: artistLabel });
+  }
+  if (showTitle && title) {
+    blocks.push({ style: "normal", size: titleSize, text: title });
+  }
 
-  cursorY += artistLines.length * artistSize * lineHeightFactor + lineGap;
+  if (!blocks.length) return;
 
-  pdf.setFont("NotoSans", "normal");
-  pdf.setFontSize(titleSize);
-  const titleLines = pdf.splitTextToSize(title, textWidth);
-  pdf.text(titleLines, centerX, cursorY, { align: "center" });
+  let cursorY = y + padding;
+
+  blocks.forEach((block) => {
+    pdf.setFont("NotoSans", block.style);
+    pdf.setFontSize(block.size);
+    const lines = pdf.splitTextToSize(block.text, textWidth);
+    const baseline = block.size * lineHeightFactor;
+    pdf.text(lines, centerX, cursorY + baseline, { align: "center" });
+    cursorY += lines.length * block.size * lineHeightFactor + lineGap;
+  });
 }
