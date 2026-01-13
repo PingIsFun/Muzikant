@@ -3,7 +3,7 @@ import { jsPDF } from "jspdf";
 import PlaylistInput from "./components/PlaylistInput.jsx";
 import PdfGenerator from "./components/PdfGenerator.jsx";
 import { parsePlaylistUrl } from "./utils/parsePlaylistUrl.js";
-import { fetchPlaylistTracks } from "./api/backendApi.js";
+import { fetchPlaylist } from "./api/backendApi.js";
 import { generateQrDataUrl } from "./utils/qrUtils.js";
 import {
   addFrontCardToPdf,
@@ -44,7 +44,9 @@ export default function App() {
 
     try {
       setProgress("Fetching tracks");
-      const tracks = await fetchPlaylistTracks(playlistId);
+      const playlist = await fetchPlaylist(playlistId);
+      const tracks = playlist?.tracks || [];
+      const playlistTitle = playlist?.name || playlistId;
       if (!tracks.length) {
         setProgress("");
         setError("No playable tracks found in this playlist.");
@@ -96,7 +98,7 @@ export default function App() {
         });
       }
 
-      const safeName = sanitizeFilename(playlistId) || "playlist";
+      const safeName = sanitizeFilename(playlistTitle) || "playlist";
       pdf.save(`music-timeline-cards-${safeName}.pdf`);
       setProgress("");
     } catch (err) {

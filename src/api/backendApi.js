@@ -1,6 +1,6 @@
 import { API_BASE } from "../config/api.js";
 
-export async function fetchPlaylistTracks(playlistId) {
+export async function fetchPlaylist(playlistId) {
   const response = await fetch(`${API_BASE}/api/playlist/${playlistId}`);
   if (!response.ok) {
     if (response.status === 503) {
