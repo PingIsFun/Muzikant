@@ -26,6 +26,7 @@ export default function App() {
   const [playlistInput, setPlaylistInput] = useState("");
   const [playlistId, setPlaylistId] = useState(null);
   const [progress, setProgress] = useState("");
+  const [progressValue, setProgressValue] = useState(0);
   const [error, setError] = useState("");
   const [backFields, setBackFields] = useState({
     year: true,
@@ -49,33 +50,41 @@ export default function App() {
     }
 
     try {
-      setProgress("Fetching tracks");
+      const setProgressState = (message, value) => {
+        setProgress(message);
+        setProgressValue(value);
+      };
+
+      setProgressState("Fetching tracks", 10);
       const playlist = await fetchPlaylist(playlistId);
       const tracks = playlist?.tracks || [];
       const playlistTitle = playlist?.name || playlistId;
       if (!tracks.length) {
         setProgress("");
+        setProgressValue(0);
         setError("No playable tracks found in this playlist.");
         return;
       }
 
-      setProgress("Generating QR codes");
+      setProgressState("Generating QR codes (1/1)", 20);
       const qrDataUrls = [];
       for (let index = 0; index < tracks.length; index += 1) {
         const track = tracks[index];
-        setProgress(`Generating QR codes (${index + 1}/${tracks.length})`);
+        const percent = 20 + Math.round(((index + 1) / tracks.length) * 60);
+        setProgressState(`Generating QR codes (${index + 1}/${tracks.length})`, percent);
         const dataUrl = await generateQrDataUrl(track.id);
         qrDataUrls.push(dataUrl);
       }
 
-      setProgress("Building PDF");
+      setProgressState("Loading PDF font", 85);
       const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
-      setProgress("Loading PDF font");
       await registerPdfFonts(pdf);
-      setProgress("Building PDF");
+      setProgressState("Building PDF (1/1)", 90);
       const totalPages = Math.ceil(tracks.length / CARDS_PER_PAGE);
 
       for (let pageIndex = 0; pageIndex < totalPages; pageIndex += 1) {
+        const pagePercent = 90 + Math.round(((pageIndex + 1) / totalPages) * 10);
+        setProgressState(`Building PDF (${pageIndex + 1}/${totalPages})`, pagePercent);
         if (pageIndex > 0) {
           pdf.addPage();
         }
@@ -109,8 +118,10 @@ export default function App() {
       const safeName = sanitizeFilename(playlistTitle) || "playlist";
       pdf.save(`music-timeline-cards-${safeName}.pdf`);
       setProgress("");
+      setProgressValue(0);
     } catch (err) {
       setProgress("");
+      setProgressValue(0);
       setError(err.message || "Something went wrong while generating the PDF.");
     }
   };
@@ -195,8 +206,21 @@ export default function App() {
             Print duplex (long edge), scale 100%. The L-shaped marks should overlap when aligned correctly.
           </div>
           {progress && (
-            <div style={{ fontSize: "14px", color: "#334155" }}>
-              {progress}
+            <div style={{ display: "grid", gap: "6px" }}>
+              <div style={{ fontSize: "14px", color: "#334155" }}>
+                {progress}
+              </div>
+              <div style={{ height: "6px", background: "#e2e8f0", borderRadius: "999px" }}>
+                <div
+                  style={{
+                    width: `${Math.min(Math.max(progressValue, 0), 100)}%`,
+                    height: "100%",
+                    background: "#16a34a",
+                    borderRadius: "999px",
+                    transition: "width 200ms ease",
+                  }}
+                />
+              </div>
             </div>
           )}
           {error && (

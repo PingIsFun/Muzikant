@@ -115,6 +115,8 @@ export function addBackCardToPdf(pdf, { indexOnPage, year, artist, album, title,
   const titleSize = clamp(LAYOUT.cardSize * 0.16, 8, 11);
   const lineGap = 0.5;
   const lineHeightFactor = 0.5;
+  const maxHeight = LAYOUT.cardSize - padding * 2;
+  const minScale = 0.25;
 
   const showYear = fields?.year ?? true;
   const showArtist = fields?.artist ?? true;
@@ -143,14 +145,65 @@ export function addBackCardToPdf(pdf, { indexOnPage, year, artist, album, title,
 
   if (!blocks.length) return;
 
+  const buildBlocks = (scale) =>
+    blocks.map((block) => {
+      const size = block.size * scale;
+      pdf.setFont("NotoSans", block.style);
+      pdf.setFontSize(size);
+      const lines = pdf.splitTextToSize(block.text, textWidth);
+      return { ...block, size, lines };
+    });
+
+  const computeHeight = (blockData, gap) =>
+    blockData.reduce((total, block, index) => {
+      const blockHeight = block.lines.length * block.size * lineHeightFactor;
+      const spacer = index < blockData.length - 1 ? gap : 0;
+      return total + blockHeight + spacer;
+    }, 0);
+
+  const getLayoutForScale = (scale) => {
+    const blockData = buildBlocks(scale);
+    const gap = lineGap * scale;
+    const height = computeHeight(blockData, gap);
+    return { blockData, gap, height };
+  };
+
+  let scale = 1;
+  let layout = getLayoutForScale(scale);
+
+  if (layout.height > maxHeight) {
+    let low = minScale;
+    let high = 1;
+    let best = null;
+
+    for (let i = 0; i < 12; i += 1) {
+      const mid = (low + high) / 2;
+      const candidate = getLayoutForScale(mid);
+      if (candidate.height <= maxHeight) {
+        best = candidate;
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+
+    if (best) {
+      layout = best;
+    } else {
+      layout = getLayoutForScale(minScale);
+    }
+  }
+
   let cursorY = y + padding;
 
-  blocks.forEach((block) => {
+  layout.blockData.forEach((block, index) => {
     pdf.setFont("NotoSans", block.style);
     pdf.setFontSize(block.size);
-    const lines = pdf.splitTextToSize(block.text, textWidth);
     const baseline = block.size * lineHeightFactor;
-    pdf.text(lines, centerX, cursorY + baseline, { align: "center" });
-    cursorY += lines.length * block.size * lineHeightFactor + lineGap;
+    pdf.text(block.lines, centerX, cursorY + baseline, { align: "center" });
+    cursorY += block.lines.length * block.size * lineHeightFactor;
+    if (index < layout.blockData.length - 1) {
+      cursorY += layout.gap;
+    }
   });
 }
